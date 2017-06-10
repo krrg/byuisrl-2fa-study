@@ -21,6 +21,13 @@ class UsernamePassword(vertx: Vertx) {
 
   })
 
+  router.route(HttpMethod.POST, "/account").handler((context) => {
+
+    /* Make sure the username isn't already taken */
+
+
+  })
+
 }
 
 object UsernamePassword {
