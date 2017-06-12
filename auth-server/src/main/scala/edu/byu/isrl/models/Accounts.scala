@@ -1,13 +1,14 @@
 package edu.byu.isrl.models
 
 import java.nio.charset.StandardCharsets
+import java.util.UUID
 
 import io.vertx.lang.scala.json.Json
 import io.vertx.scala.core.Vertx
 import org.abstractj.kalium.NaCl
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 /**
   * Created by krr428 on 6/10/17.
@@ -16,28 +17,79 @@ class Accounts(vertx: Vertx) {
 
   private lazy val couchClient = CouchDBClient(vertx)
 
-  def exists(username: String): Future[Boolean] = {
+  def exists(username: String)(implicit ec: ExecutionContext): Future[Boolean] = {
 
-    couchClient.get("/accounts/_find").sendJsonFuture(
-      Json.emptyObj()
-        .put("selector", Json.obj(("username", username)))
-        .put("limit", 1)
-        .put("fields", Json.arr("_id"))
-    )
-    .map { httpResponse =>
-      httpResponse.statusCode() match {
-        case 200 => true
-        case _ => false
+    println(s"Checking if ${username} exists as username.")
+
+      couchClient.post("/accounts/_find").sendJsonFuture(
+        Json.emptyObj()
+          .put("selector", Json.obj(("username", username)))
+          .put("limit", 1)
+          .put("fields", Json.arr("_id"))
+      ).map { httpResponse =>
+        httpResponse.statusCode() match {
+          case 200 => true
+          case _ => false
+        }
       }
-    }
 
   }
 
-//  def create(username: String, password: String): Future[UUID] = {
-//
-//  }
+  def create(username: String, password: String)(implicit ec: ExecutionContext): Future[Option[UUID]] = {
+
+    this.exists(username).flatMap {
+      case true => Future.successful(None)
+      case false =>
+
+        val userId = UUID.randomUUID()
+        val hashedPassword = PasswordUtils.hashAndSaltPassword(password)
+
+        couchClient.put(s"/accounts/${userId}").sendJsonFuture(
+          Json.emptyObj()
+            .put("username", username)
+            .put("pwhash", hashedPassword)
+        )
+          .map(_.statusCode())
+          .map {
+            case 200 => Some(userId)
+            case _ => None
+          }
+
+    }
+  }
+
+  def verify(username: String, password: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+
+    couchClient.post("/accounts/_find").sendJsonFuture(
+      Json.emptyObj()
+        .put("selector", Json.obj(("username", username)))
+        .put("limit", 1)
+        .put("fields", Json.arr("pwhash"))
+    )
+      .map { httpResponse =>
+        httpResponse.statusCode() match {
+          case 200 =>
+
+            val accountJson = httpResponse.bodyAsJsonObject().getOrElse(Json.emptyObj())
+
+            if (!accountJson.containsKey("pwhash")) {
+              false
+            } else {
+              val storedPwHash = accountJson.getString("pwhash")
+              PasswordUtils.verifyPassword(password, storedPwHash)
+            }
+
+          case _ => false
+        }
+      }
+  }
 
 }
+
+object Accounts {
+  def apply(vertx: Vertx): Accounts = new Accounts(vertx)
+}
+
 
 object PasswordUtils {
 

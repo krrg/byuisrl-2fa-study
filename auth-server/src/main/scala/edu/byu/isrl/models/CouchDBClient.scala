@@ -14,6 +14,7 @@ class CouchDBClient(vertx: Vertx, config: CouchDBClientConfiguration) {
         .setMaxPoolSize(config.poolSize)
         .setDefaultHost(config.hostname)
         .setDefaultPort(config.port)
+        .setConnectTimeout(1000 /* ms */)
     )
   }
 

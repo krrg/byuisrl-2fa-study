@@ -2,7 +2,6 @@ package edu.byu.isrl
 
 import edu.byu.isrl.routers.UsernamePassword
 import io.vertx.scala.core.Vertx
-import io.vertx.scala.core.http.HttpServerOptions
 import io.vertx.scala.ext.web.Router
 
 /**
