@@ -2,22 +2,28 @@ package edu.byu.isrl.models
 
 import java.nio.charset.StandardCharsets
 import java.util.UUID
-
 import io.vertx.lang.scala.json.Json
 import io.vertx.scala.core.Vertx
 import org.abstractj.kalium.NaCl
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.control.NonFatal
 
 /**
   * Created by krr428 on 6/10/17.
   */
-class Accounts(vertx: Vertx) {
+class Accounts(vertx: Vertx)(implicit executionContext: ExecutionContext) {
 
-  private lazy val couchClient = CouchDBClient(vertx)
+  private val couchClient = {
+    /* Ensure that the accounts database actually exists */
+    val client = CouchDBClient(vertx)
+    client.put("/accounts").sendFuture()
+      .foreach(response => {
+        println(s"The response for creation was: ${response.statusMessage()}")
+      })
+    client
+  }
 
-  def exists(username: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+  def exists(username: String): Future[Boolean] = {
 
     println(s"Checking if ${username} exists as username.")
 
@@ -35,7 +41,7 @@ class Accounts(vertx: Vertx) {
 
   }
 
-  def create(username: String, password: String)(implicit ec: ExecutionContext): Future[Option[UUID]] = {
+  def create(username: String, password: String): Future[Option[UUID]] = {
 
     this.exists(username).flatMap {
       case true => Future.successful(None)
@@ -58,7 +64,7 @@ class Accounts(vertx: Vertx) {
     }
   }
 
-  def verify(username: String, password: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+  def verify(username: String, password: String): Future[Boolean] = {
 
     couchClient.post("/accounts/_find").sendJsonFuture(
       Json.emptyObj()
@@ -87,7 +93,7 @@ class Accounts(vertx: Vertx) {
 }
 
 object Accounts {
-  def apply(vertx: Vertx): Accounts = new Accounts(vertx)
+  def apply(vertx: Vertx)(implicit executionContext: ExecutionContext): Accounts = new Accounts(vertx)(executionContext)
 }
 
 

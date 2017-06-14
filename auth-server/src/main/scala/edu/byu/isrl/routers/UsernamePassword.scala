@@ -6,11 +6,11 @@ import io.vertx.lang.scala.json.Json
 import io.vertx.scala.core.Vertx
 import io.vertx.scala.ext.web.Router
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 import scala.util.Try
 
 
-class UsernamePassword(vertx: Vertx) {
+class UsernamePassword(vertx: Vertx)(implicit executionContext: ExecutionContext) {
 
   var router = Router.router(vertx)
   var accounts = Accounts(vertx)
@@ -42,14 +42,24 @@ class UsernamePassword(vertx: Vertx) {
 
           println(s"Creating account for ${username}")
 
-          accounts.create(username, password)
-            .map {
-              case None => context.response().setStatusCode(409 /* Conflict */)
+          val futAccountCreated = accounts.create(username, password)
+
+          futAccountCreated.map {
+              case None => context.response().setStatusCode(409 /* Conflict */).end()
               case Some(userId) =>
                 context.response().setStatusCode(201 /* Created */)
                 context.response().putHeader("Content-Type", "application/json")
                 context.response().end(Json.obj(("userId", userId)).encode())
             }
+
+          futAccountCreated.failed.foreach { ex =>
+            /* Note:  Do not return the actual stack trace to the user.  */
+            println(ex)
+
+            context.response().setStatusCode(500)
+            context.response().end("Unfortunately, something went wrong on our end.")
+          }
+
 
       }
 
@@ -61,7 +71,9 @@ class UsernamePassword(vertx: Vertx) {
 
 object UsernamePassword {
 
-  def apply(vertx: Vertx): Router = new UsernamePassword(vertx).router
+  def apply(vertx: Vertx)(implicit executionContext: ExecutionContext): Router = {
+    new UsernamePassword(vertx)(executionContext).router
+  }
 
 }
 
