@@ -11,6 +11,7 @@ libraryDependencies += "io.vertx" %% "vertx-web-client-scala" % "3.4.1"
 libraryDependencies += "org.abstractj.kalium" % "kalium" % "0.6.0"
 libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.1"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
+libraryDependencies += "com.typesafe" % "config" % "1.3.1"
 
 // ============================================================================
 

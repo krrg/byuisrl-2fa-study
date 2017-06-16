@@ -10,12 +10,12 @@ import scala.concurrent.ExecutionContext
 import scala.util.Try
 
 
-class UsernamePassword(vertx: Vertx)(implicit executionContext: ExecutionContext) {
+class Accounts(vertx: Vertx)(implicit executionContext: ExecutionContext) {
 
-  var router = Router.router(vertx)
-  var accounts = Accounts(vertx)
+  val router = Router.router(vertx)
+  val accounts = Accounts(vertx)
 
-
+  /* Healthcheck */
   router.route(HttpMethod.GET, "/").handler((context) => {
     var response = context.response()
 
@@ -25,7 +25,8 @@ class UsernamePassword(vertx: Vertx)(implicit executionContext: ExecutionContext
   })
 
 
-  router.route(HttpMethod.POST, "/account").handler((context) => {
+  /* Create */
+  router.route(HttpMethod.POST, "/accounts").handler((context) => {
     context.request().bodyHandler(body => {
 
       val optJson = Try(body.toJsonObject).toOption
@@ -67,12 +68,21 @@ class UsernamePassword(vertx: Vertx)(implicit executionContext: ExecutionContext
 
   })
 
+
+  /* Login */
+  router.route(HttpMethod.POST, "/accounts/login").handler((context) => {
+    /* Are we trying to begin a 2-factor process or complete one? */
+  })
+
+
+
+
 }
 
-object UsernamePassword {
+object Accounts {
 
   def apply(vertx: Vertx)(implicit executionContext: ExecutionContext): Router = {
-    new UsernamePassword(vertx)(executionContext).router
+    new Accounts(vertx)(executionContext).router
   }
 
 }

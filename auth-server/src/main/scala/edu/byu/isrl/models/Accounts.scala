@@ -33,6 +33,10 @@ class Accounts(vertx: Vertx)(implicit executionContext: ExecutionContext) {
           .put("limit", 1)
           .put("fields", Json.arr("_id"))
       ).map { httpResponse =>
+
+        println("HTTP Exists resposne: ", httpResponse.body().toString())
+
+
         httpResponse.statusCode() match {
           case 200 => true
           case _ => false
